@@ -6,6 +6,7 @@ import { Construct } from "constructs";
 
 export class ProductsAppStack extends cdk.Stack {
   readonly productsFetchHandler: lambdaNodeJS.NodejsFunction;
+  readonly productsAdminHandler: lambdaNodeJS.NodejsFunction;
   readonly productsDdb: dynamoDB.Table;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -42,7 +43,27 @@ export class ProductsAppStack extends cdk.Stack {
         },
       }
     );
-
     this.productsDdb.grantReadData(this.productsFetchHandler);
+
+    this.productsAdminHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "productsAdminFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        functionName: "ProductsAdminFunction",
+        entry: "lambda/products/productsAdminFunction.ts",
+        handler: "handler",
+        memorySize: 512,
+        timeout: cdk.Duration.seconds(5),
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        environment: {
+          PRODUCTS_DDB: this.productsDdb.tableName,
+        },
+      }
+    );
+    this.productsDdb.grantWriteData(this.productsAdminHandler);
   }
 }
